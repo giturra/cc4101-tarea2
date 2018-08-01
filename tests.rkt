@@ -105,6 +105,12 @@
 ; more tests
 (module+ test
   ; pretty-printing
+  (test (pretty-printing
+         (structV 'Nat 'Succ (list (structV 'Nat 'Succ (list (structV 'Nat 'Zero empty))))))
+        "{Succ {Succ {Zero}}}")
+  (test (pretty-printing (structV 'List 'Cons (list 2 (structV 'List 'Empty empty)))) "{Cons 2 {Empty}}")
+  (test (pretty-printing (structV 'List 'Cons (list #f (structV 'List 'Empty empty)))) "{Cons #f {Empty}}")
+  ; run con pretty-printing
   (test (run '{local {{datatype Nat
                                 {Zero}
                                 {Succ n}}
@@ -123,4 +129,5 @@
                                          {match n
                                            {case {Cons a b} => b}}}}}
                       {rest {Cons #t {Cons #f {Empty}}}}}) "{Cons #f {Empty}}"))
+
 
