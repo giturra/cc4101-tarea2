@@ -204,24 +204,35 @@
                      #f)]
                 [(x y) (error "Match failure")]))
 
-;; run :: s-expr -> number/boolean/procedura/struct
+;; run :: s-expr -> number/boolean/procedura/String
 (define(run prog)
+  (def length-def '{define length {fun {l}
+                                       {match l
+                                         {case {Cons a b} => {+ 1 {length b}}}
+                                         {case {Empty} => 0}
+                                         {case _ => 1}}}})
+  (def list-def-prog (list 'local '{{datatype List {Empty} {Cons a b}}}
+                                        (list 'local (list length-def) prog)))
   (begin
-    (def result (interp (parse prog) empty-env))
+    (def result (interp (parse list-def-prog) empty-env))
     (match result
-      [(structV name variant values) (substring (pretty-printing result) 1)]
+      [(structV name variant values) (pretty-printing result)]
       [_ result])))
 
 ;; pretty-printing :: number/boolean/procedure/Struct -> String
 ; translates a Struct to a readable String
 (define (pretty-printing input)
-  (match input
-    [(? number?) (string-append " " (number->string input))]
-    [(? boolean?) (string-append " " (format "~a" input))]
-    [(? symbol?) (string-append " " (symbol->string input))]
-    [(list val ..1) (string-append (pretty-printing (car input)) (pretty-printing (cdr input)))]
-    [(structV name variant values) (string-append " {" (symbol->string variant) (pretty-printing values) "}")]
-    [_ ""]))
+  (define (pretty-printing-aux input)
+    (match input
+      [(? number?) (string-append " " (number->string input))]
+      [(? boolean?) (string-append " " (format "~a" input))]
+      [(? symbol?) (string-append " " (symbol->string input))]
+      [(list val ..1) (string-append (pretty-printing-aux (car input))
+                                     (pretty-printing-aux (cdr input)))]
+      [(structV name variant values) (string-append " {" (symbol->string variant)
+                                                    (pretty-printing-aux values) "}")]
+      [_ ""]))
+  (substring (pretty-printing-aux input) 1))
 
 #|-----------------------------
 Environment abstract data type

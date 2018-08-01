@@ -128,6 +128,11 @@
                       {define rest {fun {n}
                                          {match n
                                            {case {Cons a b} => b}}}}}
-                      {rest {Cons #t {Cons #f {Empty}}}}}) "{Cons #f {Empty}}"))
+                      {rest {Cons #t {Cons #f {Empty}}}}}) "{Cons #f {Empty}}")
+  (test (run '{List? {Empty}}) #t)
+  (test (run '{List? {Cons 1 2}}) #t)
+  (test (run '{Cons? {Cons 1 2}}) #t)
+  (test (run '{length {Cons 1 2}}) 2)
+  (test (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 3))
 
 
