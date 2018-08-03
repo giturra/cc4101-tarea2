@@ -71,6 +71,15 @@
 ;; parse :: s-expr -> Expr
 (define(parse s-expr)
   (match s-expr
+    [(list 'list element ...) (begin
+                                (define (parse-list l)
+                                  (match l
+                                    [(list head tail ...)
+                                     (app (id 'Cons)
+                                          (list (parse head)
+                                                (parse-list tail)))]
+                                    [(list) (app (id 'Empty) (list))]))
+                                (parse-list element))]
     [(? number?) (num s-expr)]
     [(? boolean?) (bool s-expr)]
     [(? string?) (str s-expr)]
@@ -209,8 +218,7 @@
   (def length-def '{define length {fun {l}
                                        {match l
                                          {case {Cons a b} => {+ 1 {length b}}}
-                                         {case {Empty} => 0}
-                                         {case _ => 1}}}})
+                                         {case {Empty} => 0}}}})
   (def list-def-prog (list 'local '{{datatype List {Empty} {Cons a b}}}
                                         (list 'local (list length-def) prog)))
   (begin

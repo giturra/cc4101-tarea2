@@ -110,6 +110,7 @@
         "{Succ {Succ {Zero}}}")
   (test (pretty-printing (structV 'List 'Cons (list 2 (structV 'List 'Empty empty)))) "{Cons 2 {Empty}}")
   (test (pretty-printing (structV 'List 'Cons (list #f (structV 'List 'Empty empty)))) "{Cons #f {Empty}}")
+  
   ; run con pretty-printing
   (test (run '{local {{datatype Nat
                                 {Zero}
@@ -129,10 +130,33 @@
                                          {match n
                                            {case {Cons a b} => b}}}}}
                       {rest {Cons #t {Cons #f {Empty}}}}}) "{Cons #f {Empty}}")
+  
+  ; tests List
   (test (run '{List? {Empty}}) #t)
   (test (run '{List? {Cons 1 2}}) #t)
   (test (run '{Cons? {Cons 1 2}}) #t)
-  (test (run '{length {Cons 1 2}}) 2)
-  (test (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 3))
+  (test (run '{Cons? {Cons 1 2}}) #t)
+  (test (run '{Empty? {Empty}}) #t)
+  (test (run '{Empty? {Cons 1 2}}) #f)
+  
+  ; tests length
+  (test (run '{length {Cons 1 {Empty}}}) 1)
+  (test (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 3)
+  (test (run '{length {Empty}}) 0)
+  
+  ; tests sintactic sugar list
+  (test (run '{match {list {+ 1 1} 4 6}
+                {case {Cons h r} => h}
+                {case _ => 0}})
+        2)
+  (test (run '{match {list {+ 1 1} {list 4 6}}
+                {case {Cons h r} => r}
+                {case _ => 0}})
+        "{Cons {Cons 4 {Cons 6 {Empty}}} {Empty}}")
+  (test (run '{List? {list  1 2 3}}) #t)
+  (test (run '{length {list 1 2 3 4 5 6}}) 6)
+  (test (run '{Empty? {list}}) #t)
+  (test (run '{List? {list 1 {list 2 3} 4}}) #t)
+  (test (run '{List? {list {list 1 2} {list 3 4}}}) #t))
 
 
