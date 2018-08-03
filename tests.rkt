@@ -108,8 +108,6 @@
   (test (pretty-printing
          (structV 'Nat 'Succ (list (structV 'Nat 'Succ (list (structV 'Nat 'Zero empty))))))
         "{Succ {Succ {Zero}}}")
-  (test (pretty-printing (structV 'List 'Cons (list 2 (structV 'List 'Empty empty)))) "{Cons 2 {Empty}}")
-  (test (pretty-printing (structV 'List 'Cons (list #f (structV 'List 'Empty empty)))) "{Cons #f {Empty}}")
   
   ; run con pretty-printing
   (test (run '{local {{datatype Nat
@@ -120,16 +118,22 @@
                                           {case {Zero} => {Zero}}
                                           {case {Succ m} => m}}}}}
                 {pred {Succ {Succ {Succ {Zero}}}}}}) "{Succ {Succ {Zero}}}")
+  (test (run '{local {{datatype Nat
+                                {Zero}
+                                {Succ n}}
+                      {define next {fun {n}
+                                        {Succ n}}}}
+                {next {Succ {Succ {Zero}}}}}) "{Succ {Succ {Succ {Zero}}}}")
   (test (run '{local {{datatype List {Empty} {Cons a b}}
                       {define rest {fun {n}
                                          {match n
                                            {case {Cons a b} => b}}}}}
-                      {rest {Cons 1 {Cons 2 {Empty}}}}}) "{Cons 2 {Empty}}")
+                      {rest {Cons 1 {Cons 2 {Empty}}}}}) "{list 2}")
   (test (run '{local {{datatype List {Empty} {Cons a b}}
                       {define rest {fun {n}
                                          {match n
                                            {case {Cons a b} => b}}}}}
-                      {rest {Cons #t {Cons #f {Empty}}}}}) "{Cons #f {Empty}}")
+                      {rest {Cons #t {Cons #f {Empty}}}}}) "{list #f}")
   
   ; tests List
   (test (run '{List? {Empty}}) #t)
@@ -149,14 +153,29 @@
                 {case {Cons h r} => h}
                 {case _ => 0}})
         2)
-  (test (run '{match {list {+ 1 1} {list 4 6}}
+  (test (run '{match {list {+ 1 1} {list 4 6} 7}
                 {case {Cons h r} => r}
                 {case _ => 0}})
-        "{Cons {Cons 4 {Cons 6 {Empty}}} {Empty}}")
+        "{list {list 4 6} 7}")
   (test (run '{List? {list  1 2 3}}) #t)
   (test (run '{length {list 1 2 3 4 5 6}}) 6)
   (test (run '{Empty? {list}}) #t)
   (test (run '{List? {list 1 {list 2 3} 4}}) #t)
-  (test (run '{List? {list {list 1 2} {list 3 4}}}) #t))
+  (test (run '{List? {list {list 1 2} {list 3 4}}}) #t)
+
+  ; tests pattern matching con list
+  (test (run '{match {list 2 {list 4 5} 6}
+                {case {list a {list b c} d} => c}}) 5)
+  (test (run '{match {list}
+                {case {list 1 2 3} => #t}
+                {case {list} => #f}}) #f)
+  (test (run '{match {Cons 1 {Cons 2 {Empty}}}
+                {case {list a b} => b}}) 2)
+
+  ; pretty-printing para listas
+  (test (run '{list 1 4 6}) "{list 1 4 6}")
+  (test (run '{list}) "{list}")
+  (test (run '{list 1 {list 2 3} 4}) "{list 1 {list 2 3} 4}")
+  (test (run '{list {list 1 2} 3 4}) "{list {list 1 2} 3 4}"))
 
 

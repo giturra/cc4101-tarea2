@@ -71,7 +71,7 @@
 ;; parse :: s-expr -> Expr
 (define(parse s-expr)
   (match s-expr
-    [(list 'list element ...) (begin
+    [(list 'list elements ...) (begin
                                 (define (parse-list l)
                                   (match l
                                     [(list head tail ...)
@@ -79,7 +79,7 @@
                                           (list (parse head)
                                                 (parse-list tail)))]
                                     [(list) (app (id 'Empty) (list))]))
-                                (parse-list element))]
+                                (parse-list elements))]
     [(? number?) (num s-expr)]
     [(? boolean?) (bool s-expr)]
     [(? string?) (str s-expr)]
@@ -120,6 +120,15 @@
     [(? number?)  (litP (num p))]
     [(? boolean?) (litP (bool p))]
     [(? string?)  (litP (str p))]
+    [(list 'list elements ...) (begin
+                                 (define (parse-pattern-list l)
+                                   (match l
+                                     [(list head tail ...)
+                                      (constrP 'Cons
+                                               (list (parse-pattern head)
+                                                     (parse-pattern-list tail)))]
+                                     [(list) (constrP 'Empty (list))]))
+                                 (parse-pattern-list elements))]
     [(list ctr patterns ...) (constrP (first p) (map parse-pattern patterns))]))
 
 ;; interp :: Expr Env -> number/boolean/procedure/Struct
@@ -234,9 +243,16 @@
     (match input
       [(? number?) (string-append " " (number->string input))]
       [(? boolean?) (string-append " " (format "~a" input))]
-      [(? symbol?) (string-append " " (symbol->string input))]
       [(list val ..1) (string-append (pretty-printing-aux (car input))
                                      (pretty-printing-aux (cdr input)))]
+      [(structV 'List variant values) (begin
+                                        (define (pretty-print-list l)                                          
+                                          (match l
+                                            [(list v (structV 'List variant values))
+                                             (string-append (pretty-printing-aux v)
+                                                            (pretty-print-list values))]
+                                            [(list) "}"]))
+                                        (string-append " {list" (pretty-print-list values)))]
       [(structV name variant values) (string-append " {" (symbol->string variant)
                                                     (pretty-printing-aux values) "}")]
       [_ ""]))
