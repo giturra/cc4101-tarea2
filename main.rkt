@@ -68,6 +68,12 @@
   (litP l) ; valor literal 
   (constrP ctr patterns)) ; constructor y sub-patrones
 
+; Val para representar clausuras y expresiones sin evaluar
+; usado al implementar lazyness
+(deftype Val
+  (closureV arg body env)
+  (exprV expr env cache))
+
 ;; parse :: s-expr -> Expr
 (define(parse s-expr)
   (match s-expr
@@ -140,19 +146,31 @@
     [(str s) s]
     ; conditional
     [(ifc c t f)
-     (if (interp c env)
-         (interp t env)
-         (interp f env))]
+     (if (strict (interp c env))
+         (strict (interp t env))
+         (strict (interp f env)))]
     ; identifier
     [(id x) (env-lookup x env)]
     ; function (notice the meta interpretation)
     [(fun ids body)
-     (λ (arg-vals)
-       (interp body (extend-env ids arg-vals env)))]
+     (closureV ids
+               (λ (arg-vals)
+                 (strict (interp body (extend-env ids arg-vals env))))
+               env)]
     ; application
     [(app fun-expr arg-expr-list)
-     ((interp fun-expr env)
-      (map (λ (a) (interp a env)) arg-expr-list))]
+     (match (strict (interp fun-expr env))
+       [(closureV cl-arg cl-body cl-env)
+        (cl-body
+         (map
+          (λ (id a)
+            (match id
+              [(list 'lazy x) (exprV a env (box #f))]
+              [_ (strict (interp a env))]))
+          cl-arg
+          arg-expr-list))]
+       [inter (inter
+               (map (λ (a) (interp a env)) arg-expr-list))])]     
     ; primitive application
     [(prim-app prim arg-expr-list)
      (apply (cadr (assq prim *primitives*))
@@ -161,12 +179,29 @@
     [(lcal defs body)
      (def new-env (extend-env '() '() env))            
      (for-each (λ (d) (interp-def d new-env)) defs) 
-     (interp body new-env)]
+     (strict (interp body new-env))]
     ; pattern matching
     [(mtch expr cases)
      (def value-matched (interp expr env))
      (def (cons alist body) (find-first-matching-case value-matched cases))
-     (interp body (extend-env (map car alist) (map cdr alist) env))]))
+     (strict (interp body (extend-env (map car alist) (map cdr alist) env)))]))
+
+; strict :: number/boolean/procedure/Struct/Val -> number/boolean/procedure/Struct/Val (only closureV)
+(define (strict v)
+  (match v
+    [(exprV expr env cache)
+     (if (unbox cache)
+         ;(begin
+          ; (printf "using cached value for ~v ~n" expr)
+           (unbox cache)
+           ;)
+         (begin
+           ;(printf "forcing ~v ~n" expr)
+           (let ([val (strict (interp expr env))])
+             (set-box! cache val)
+             val))
+         )]
+    [ _ v]))
 
 ; interp-def :: Def Env -> Void
 (define(interp-def d env)
@@ -191,7 +226,8 @@
   (def varname (variant-name var))  
   ;; variant data constructor, eg. Zero, Succ
   (update-env! varname
-               (λ (args) (structV name varname args))
+               (closureV (variant-params var) (λ (args) (structV name varname args)) env)
+               ; (λ (args) (structV name varname args))
                env)
   ;; variant predicate, eg. Zero?, Succ?
   (update-env! (string->symbol (string-append (symbol->string varname) "?"))

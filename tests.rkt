@@ -176,6 +176,20 @@
   (test (run '{list 1 4 6}) "{list 1 4 6}")
   (test (run '{list}) "{list}")
   (test (run '{list 1 {list 2 3} 4}) "{list 1 {list 2 3} 4}")
-  (test (run '{list {list 1 2} 3 4}) "{list {list 1 2} 3 4}"))
+  (test (run '{list {list 1 2} 3 4}) "{list {list 1 2} 3 4}")
+
+  ; lazy
+  (test (run '{{fun {x {lazy y}} x} 1 {/ 1 0}}) 1)
+  (test (run '{with {{f {fun {x {lazy y}} x}}} {f 1 {/ 1 0}}}) 1)
+  (test/exn (run '{{fun {x y} x} 1 {/ 1 z}}) "env-lookup: no binding for identifier:")
+  (test (run '{local {{datatype T
+                                {C {lazy a}}}
+                      {define x {C {/ 1 0}}}}
+                {T? x}}) #t)
+  (test/exn (run '{local {{datatype T
+                                    {C {lazy a}}}
+                          {define x {C {/ 1 z}}}}
+                    {match x
+                      {case {C a} => a}}}) "env-lookup: no binding for identifier:"))
 
 
