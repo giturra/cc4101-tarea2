@@ -258,21 +258,22 @@
                      #f)]
                 [(x y) (error "Match failure")]))
 
-; definicion de length
+; definition of length
 (def length-def '{define length {fun {l}
                                      {match l
                                        {case {Cons a b} => {+ 1 {length b}}}
                                        {case {Empty} => 0}}}})
 
-; definicion de list
-(define (list-def prog)
-  (list 'local '{{datatype List {Empty} {Cons a b}}}
-        (list 'local (list length-def) prog)))
+; definition of List
+(def list-def '{datatype List {Empty} {Cons a b}})
 
 ;; run :: s-expr -> number/boolean/procedura/String
 (define(run prog)
   (begin
-    (def result (interp (parse (list-def prog)) empty-env))
+    (def result (interp
+                 (parse
+                  (list 'local (list list-def) (list 'local (list length-def) prog)))
+                  empty-env))
     (match result
       [(structV name variant values) (pretty-printing result)]
       [_ result])))
