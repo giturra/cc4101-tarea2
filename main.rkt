@@ -77,6 +77,7 @@
 ;; parse :: s-expr -> Expr
 (define(parse s-expr)
   (match s-expr
+    ; azucar sintactico para list
     [(list 'list elements ...) (begin
                                 (define (parse-list l)
                                   (match l
@@ -187,6 +188,7 @@
      (strict (interp body (extend-env (map car alist) (map cdr alist) env)))]))
 
 ; strict :: number/boolean/procedure/Struct/Val -> number/boolean/procedure/Struct/Val (only closureV)
+; para cuando se requiere evaluar algo lazy
 (define (strict v)
   (match v
     [(exprV expr env cache)
@@ -258,28 +260,48 @@
                      #f)]
                 [(x y) (error "Match failure")]))
 
-; definition of length
+; definicion de length
 (def length-def '{define length {fun {l}
                                      {match l
                                        {case {Cons a b} => {+ 1 {length b}}}
                                        {case {Empty} => 0}}}})
 
-; definition of List
+; definicion de List
 (def list-def '{datatype List {Empty} {Cons a b}})
+
+; definicion de Stream
+(def stream-data '{datatype Stream {Str hd {lazy tl}}})
+
+; make-stream
+(def make-stream '{define make-stream {fun {hd tl}
+                                           {Str hd {make-stream hd tl}}}})
+
+; Stream infinito de 1s
+(def ones '{define ones {make-stream 1 ones}})
+
+; stream-hd
+(def stream-hd '{define stream-hd {fun {st}
+                                       {match st
+                                         {case {Str hd tl} => hd}}}})
+
+; stream-tl
+(def stream-tl '{define stream-tl {fun {st}
+                                       {match st
+                                         {case {Str hd tl} => tl}}}})
 
 ;; run :: s-expr -> number/boolean/procedura/String
 (define(run prog)
   (begin
     (def result (interp
                  (parse
-                  (list 'local (list list-def) (list 'local (list length-def) prog)))
+                  (list 'local (list list-def length-def) prog))
                   empty-env))
     (match result
       [(structV name variant values) (pretty-printing result)]
       [_ result])))
 
 ;; pretty-printing :: number/boolean/procedure/Struct -> String
-; translates a Struct to a readable String
+; traduce un Struct a un String legible
 (define (pretty-printing input)
   (define (pretty-printing-aux input)
     (match input

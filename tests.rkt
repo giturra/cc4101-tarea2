@@ -69,40 +69,7 @@
                                           {case {Succ m} => m}}}}}
                 {Succ? {pred {Succ {Succ {Zero}}}}}}) #t))
 
-;tests for extended MiniScheme+ 
-#;(module+ sanity-tests
-    (test (run '{local {{datatype Nat 
-                  {Zero} 
-                  {Succ n}}
-                {define pred {fun {n} 
-                               {match n
-                                 {case {Zero} => {Zero}}
-                                 {case {Succ m} => m}}}}}
-          {pred {Succ {Succ {Zero}}}}}) "{Succ {Zero}}")
-  
-(test (run
- `{local ,stream-lib
-          {local {,ones ,stream-take}
-            {stream-take 11 ones}}}) "{list 1 1 1 1 1 1 1 1 1 1 1}")
-
-(test (run `{local ,stream-lib
-          {local {,stream-zipWith ,fibs}
-            {stream-take 10 fibs}}}) "{list 1 1 2 3 5 8 13 21 34 55}")
-
-(test (run `{local ,stream-lib
-          {local {,ones ,stream-zipWith}
-            {stream-take 10
-                         {stream-zipWith
-                          {fun {n m}
-                               {+ n m}}
-                          ones
-                          ones}}}})  "{list 2 2 2 2 2 2 2 2 2 2}")
-(test 
-(run `{local ,stream-lib
-               {local {,stream-take ,merge-sort ,fibs ,stream-zipWith}
-                 {stream-take 10 {merge-sort fibs fibs}}}})   "{list 1 1 1 1 2 2 3 3 5 5}"))
-
-; more tests
+; tests tarea
 (module+ test
   ; pretty-printing
   (test (pretty-printing
@@ -190,6 +157,75 @@
                                     {C {lazy a}}}
                           {define x {C {/ 1 z}}}}
                     {match x
-                      {case {C a} => a}}}) "env-lookup: no binding for identifier:"))
+                      {case {C a} => a}}}) "env-lookup: no binding for identifier:")
+  (test (run '{local {{datatype T
+                                {C a {lazy b}}}
+                      {define x {C 2 {/ 1 0}}}}
+                {T? x}}) #t)
+  (test (run '{local {{datatype T
+                                {C a {lazy b}}}
+                      {define x {C 2 {/ 1 z}}}}
+                {match x
+                  {case {C a b} => a}}}) 2)
+  (test/exn (run '{local {{datatype T
+                                    {C a {lazy b}}}
+                          {define x {C 2 {/ 1 z}}}}
+                    {match x
+                      {case {C a b} => b}}}) "env-lookup: no binding for identifier:")
 
+  ; streams
+  ; los siguientes tests pasan (el problema es que tecnicamente no son streams infinitos,
+  ; pero al menos cumplen con la estructura y algunas funciones como stream-hd y stream-tl
+  ; funcionan)
+  (test (run `{local {,stream-data} {Stream? {Str 1 2}}}) #t)
+  (test (run `{local {,stream-data} {Stream? {Str 1 {Str 2 3}}}}) #t)
+  (test (run `{local {,stream-data} {Stream? {Str 1 x}}}) #t)
+  (test (run `{local {,stream-data ,make-stream} {Stream? {make-stream 1 2}}}) #t)
+  (test (run `{local {,stream-data ,make-stream ,stream-hd}
+                {stream-hd {Str 1 {Str 2 3}}}}) 1)
+  (test (run `{local {,stream-data ,make-stream ,stream-hd ,stream-tl}
+                {stream-hd {stream-tl {Str 1 {Str 2 3}}}}}) 2)
+  ; los siguientes tests fallan :c
+  (test (run `{local {,stream-data ,make-stream} {Stream? {make-stream 1 x}}}) #t)
+  (test (run `{local {,stream-data ,make-stream}
+                {Stream? {make-stream 1 {make-stream 2 x}}}}) #t)
+  (test (run `{local {,stream-data ,make-stream {define twos {make-stream 2 twos}}}
+                {Stream? twos}}) #t)
+  (test (run `{local {,stream-data ,make-stream ,stream-hd ,ones}
+                {stream-hd ones}}) 1)
+  (test (run `{local {,stream-data ,make-stream
+                                   ,stream-hd ,stream-tl ,ones}
+                {stream-hd {stream-tl ones}}}) 1))
 
+;tests for extended MiniScheme+ 
+#;(module+ sanity-tests
+    (test (run '{local {{datatype Nat 
+                  {Zero} 
+                  {Succ n}}
+                {define pred {fun {n} 
+                               {match n
+                                 {case {Zero} => {Zero}}
+                                 {case {Succ m} => m}}}}}
+          {pred {Succ {Succ {Zero}}}}}) "{Succ {Zero}}")
+  
+(test (run
+ `{local ,stream-lib
+          {local {,ones ,stream-take}
+            {stream-take 11 ones}}}) "{list 1 1 1 1 1 1 1 1 1 1 1}")
+
+(test (run `{local ,stream-lib
+          {local {,stream-zipWith ,fibs}
+            {stream-take 10 fibs}}}) "{list 1 1 2 3 5 8 13 21 34 55}")
+
+(test (run `{local ,stream-lib
+          {local {,ones ,stream-zipWith}
+            {stream-take 10
+                         {stream-zipWith
+                          {fun {n m}
+                               {+ n m}}
+                          ones
+                          ones}}}})  "{list 2 2 2 2 2 2 2 2 2 2}")
+(test 
+(run `{local ,stream-lib
+               {local {,stream-take ,merge-sort ,fibs ,stream-zipWith}
+                 {stream-take 10 {merge-sort fibs fibs}}}})   "{list 1 1 1 1 2 2 3 3 5 5}"))
