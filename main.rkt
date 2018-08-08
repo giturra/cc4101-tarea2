@@ -260,31 +260,35 @@
                      #f)]
                 [(x y) (error "Match failure")]))
 
-; definicion de length
+;; definicion de List
+(def list-def '{datatype List {Empty} {Cons a b}})
+
+;; length :: List -> number
+; retorna el largo de la lista
 (def length-def '{define length {fun {l}
                                      {match l
                                        {case {Cons a b} => {+ 1 {length b}}}
                                        {case {Empty} => 0}}}})
 
-; definicion de List
-(def list-def '{datatype List {Empty} {Cons a b}})
-
 ; definicion de Stream
 (def stream-data '{datatype Stream {Str hd {lazy tl}}})
 
-; make-stream
+;; make-stream :: number/boolean/procedure/String Stream -> Stream
+; genera Streams
 (def make-stream '{define make-stream {fun {hd tl}
                                            {Str hd {make-stream hd tl}}}})
 
 ; Stream infinito de 1s
 (def ones '{define ones {make-stream 1 ones}})
 
-; stream-hd
+;; stream-hd :: Stream -> number/boolean/procedura/String
+; entrega la cabeza del Stream
 (def stream-hd '{define stream-hd {fun {st}
                                        {match st
                                          {case {Str hd tl} => hd}}}})
 
-; stream-tl
+;; stream-tl :: Stream -> Stream
+; entrega la cola del Stream
 (def stream-tl '{define stream-tl {fun {st}
                                        {match st
                                          {case {Str hd tl} => tl}}}})
